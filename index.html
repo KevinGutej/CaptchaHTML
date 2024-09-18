@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced CAPTCHA Verification</title>
+    <title>Advanced CAPTCHA with Timer</title>
     <style>
         * {
             box-sizing: border-box;
@@ -26,22 +26,13 @@
             padding: 30px;
             border-radius: 8px;
             box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
-            max-width: 400px;
+            max-width: 450px;
             text-align: center;
         }
 
-        .captcha-box {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #eef;
-            padding: 15px;
-            border-radius: 5px;
-            font-size: 24px;
-            font-weight: bold;
-            color: #222;
-            letter-spacing: 3px;
+        canvas {
             margin-bottom: 15px;
+            border: 1px solid #ddd;
         }
 
         .refresh-icon {
@@ -97,50 +88,113 @@
         .result-msg.error {
             color: red;
         }
+
+        .timer {
+            font-size: 14px;
+            color: red;
+        }
     </style>
 </head>
 
 <body>
     <div class="captcha-wrapper">
-        <h2>Human Verification</h2>
-        <div class="captcha-box" id="generatedCaptcha">
-            <span id="captchaText"></span>
-            <span class="refresh-icon" onclick="reloadCaptcha()">&#x21bb;</span>
-        </div>
-        <input type="text" id="userInput" class="captcha-input" placeholder="Enter CAPTCHA text">
-        <button class="submit-btn" onclick="checkCaptcha()">Verify</button>
+        <h2>Advanced Human Verification</h2>
+        <canvas id="captchaCanvas" width="200" height="80"></canvas>
+        <span class="refresh-icon" onclick="reloadCaptcha()">&#x21bb; Refresh CAPTCHA</span>
+        <p class="timer" id="timerText"></p>
+        <input type="text" id="userCaptchaInput" class="captcha-input" placeholder="Enter CAPTCHA text">
+        <button class="submit-btn" onclick="validateCaptcha()">Verify</button>
         <p class="result-msg" id="captchaResult"></p>
     </div>
 
     <script>
-        let captchaValue = '';
-        function createCaptcha() {
+        let captchaText = '';
+        let timer;
+        let maxAttempts = 3;
+        let attemptsLeft = maxAttempts;
+        let timeLimit = 30;
+
+        function generateCaptcha() {
+            const canvas = document.getElementById('captchaCanvas');
+            const ctx = canvas.getContext('2d');
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-            let captcha = '';
+            captchaText = '';
             for (let i = 0; i < 6; i++) {
-                captcha += chars.charAt(Math.floor(Math.random() * chars.length));
+                captchaText += chars.charAt(Math.floor(Math.random() * chars.length));
             }
-            captchaValue = captcha;
-            document.getElementById('captchaText').textContent = captchaValue;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < captchaText.length; i++) {
+                const fontSize = Math.random() * (30 - 20) + 20;
+                const x = 20 + i * 30;
+                const y = Math.random() * (50 - 30) + 30;
+                const angle = (Math.random() - 0.5) * 0.4;
+                const color = `rgb(${Math.random() * 255},${Math.random() * 255},${Math.random() * 255})`;
+
+                ctx.font = `${fontSize}px Arial`;
+                ctx.fillStyle = color;
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(angle);
+                ctx.fillText(captchaText[i], 0, 0);
+                ctx.restore();
+            }
+            for (let i = 0; i < 5; i++) {
+                ctx.strokeStyle = `rgb(${Math.random() * 255},${Math.random() * 255},${Math.random() * 255})`;
+                ctx.beginPath();
+                ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
+                ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
+                ctx.stroke();
+            }
         }
         function reloadCaptcha() {
-            createCaptcha();
-            document.getElementById('userInput').value = '';
+            generateCaptcha();
+            document.getElementById('userCaptchaInput').value = '';
             document.getElementById('captchaResult').textContent = '';
+            attemptsLeft = maxAttempts;
+            startTimer();
         }
-        function checkCaptcha() {
-            const userCaptcha = document.getElementById('userInput').value;
+        function validateCaptcha() {
+            const userInput = document.getElementById('userCaptchaInput').value;
             const resultMsg = document.getElementById('captchaResult');
 
-            if (userCaptcha.toLowerCase() === captchaValue.toLowerCase()) {
-                resultMsg.textContent = 'Verification successful!';
-                resultMsg.className = 'result-msg success';
+            if (attemptsLeft > 0) {
+                if (userInput.toLowerCase() === captchaText.toLowerCase()) {
+                    resultMsg.textContent = 'Verification successful!';
+                    resultMsg.className = 'result-msg success';
+                    clearInterval(timer);
+                } else {
+                    attemptsLeft--;
+                    resultMsg.textContent = `Incorrect CAPTCHA. Attempts left: ${attemptsLeft}`;
+                    resultMsg.className = 'result-msg error';
+                    if (attemptsLeft === 0) {
+                        resultMsg.textContent = 'Maximum attempts reached. Please refresh the CAPTCHA.';
+                    }
+                }
             } else {
-                resultMsg.textContent = 'Incorrect CAPTCHA. Please try again.';
-                resultMsg.className = 'result-msg error';
+                resultMsg.textContent = 'No attempts left. Please refresh the CAPTCHA.';
             }
         }
-        window.onload = createCaptcha;
+        function startTimer() {
+            let timeRemaining = timeLimit;
+            const timerText = document.getElementById('timerText');
+            timerText.textContent = `Time left: ${timeRemaining}s`;
+
+            clearInterval(timer);
+            timer = setInterval(() => {
+                timeRemaining--;
+                timerText.textContent = `Time left: ${timeRemaining}s`;
+
+                if (timeRemaining <= 0) {
+                    clearInterval(timer);
+                    timerText.textContent = 'Time is up! Please refresh the CAPTCHA.';
+                    attemptsLeft = 0;
+                }
+            }, 1000);
+        }
+        window.onload = function () {
+            generateCaptcha();
+            startTimer();
+        };
     </script>
 </body>
 
