@@ -1,15 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced CAPTCHA with Timer</title>
+    <title>Ultimate CAPTCHA Verification</title>
     <style>
         * {
             box-sizing: border-box;
         }
-
         body {
             margin: 0;
             padding: 0;
@@ -20,31 +18,26 @@
             background-color: #f0f0f0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-
         .captcha-wrapper {
             background-color: #fff;
             padding: 30px;
             border-radius: 8px;
             box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
-            max-width: 450px;
+            max-width: 500px;
             text-align: center;
         }
-
         canvas {
             margin-bottom: 15px;
             border: 1px solid #ddd;
         }
-
         .refresh-icon {
             margin-left: 10px;
             cursor: pointer;
             color: #007bff;
         }
-
         .refresh-icon:hover {
             color: #0056b3;
         }
-
         .captcha-input {
             width: 100%;
             padding: 10px;
@@ -55,11 +48,9 @@
             outline: none;
             transition: border-color 0.3s;
         }
-
         .captcha-input:focus {
             border-color: #007bff;
         }
-
         .submit-btn {
             width: 100%;
             padding: 10px;
@@ -71,58 +62,67 @@
             cursor: pointer;
             transition: background-color 0.3s;
         }
-
         .submit-btn:hover {
             background-color: #218838;
         }
-
         .result-msg {
             margin-top: 10px;
             font-size: 16px;
         }
-
         .result-msg.success {
             color: green;
         }
-
         .result-msg.error {
             color: red;
         }
-
-        .timer {
-            font-size: 14px;
-            color: red;
+        .honeypot {
+            display: none;
         }
     </style>
 </head>
-
 <body>
     <div class="captcha-wrapper">
         <h2>Advanced Human Verification</h2>
-        <canvas id="captchaCanvas" width="200" height="80"></canvas>
+        <canvas id="captchaCanvas" width="250" height="80"></canvas>
         <span class="refresh-icon" onclick="reloadCaptcha()">&#x21bb; Refresh CAPTCHA</span>
-        <p class="timer" id="timerText"></p>
+        <p>Drag and drop the correct CAPTCHA text below:</p>
+        <div id="captchaChoices"></div>
+        <div id="dropZone" style="border: 1px solid #ccc; padding: 20px; margin-top: 15px;"></div>
         <input type="text" id="userCaptchaInput" class="captcha-input" placeholder="Enter CAPTCHA text">
+        <input type="text" class="honeypot" id="honeypotField">
         <button class="submit-btn" onclick="validateCaptcha()">Verify</button>
         <p class="result-msg" id="captchaResult"></p>
     </div>
 
     <script>
         let captchaText = '';
-        let timer;
         let maxAttempts = 3;
         let attemptsLeft = maxAttempts;
-        let timeLimit = 30;
+        let banned = false;
+        let dynamicCaptchaLength = Math.floor(Math.random() * 3) + 5;
 
         function generateCaptcha() {
             const canvas = document.getElementById('captchaCanvas');
             const ctx = canvas.getContext('2d');
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
             captchaText = '';
-            for (let i = 0; i < 6; i++) {
+
+            for (let i = 0; i < dynamicCaptchaLength; i++) {
                 captchaText += chars.charAt(Math.floor(Math.random() * chars.length));
             }
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#f3f3f3';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < 100; i++) {
+                ctx.strokeStyle = `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 0.1)`;
+                ctx.beginPath();
+                ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
+                ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
+                ctx.stroke();
+            }
+
             for (let i = 0; i < captchaText.length; i++) {
                 const fontSize = Math.random() * (30 - 20) + 20;
                 const x = 20 + i * 30;
@@ -138,64 +138,102 @@
                 ctx.fillText(captchaText[i], 0, 0);
                 ctx.restore();
             }
-            for (let i = 0; i < 5; i++) {
-                ctx.strokeStyle = `rgb(${Math.random() * 255},${Math.random() * 255},${Math.random() * 255})`;
-                ctx.beginPath();
-                ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
-                ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
-                ctx.stroke();
-            }
+
+            animateCaptchaText(ctx);
         }
+
+        function animateCaptchaText(ctx) {
+            let direction = 1;
+            setInterval(() => {
+                direction *= -1;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                generateCaptcha();
+            }, 300);
+        }
+
+        function createDraggableCaptcha() {
+            const captchaChoices = document.getElementById('captchaChoices');
+            captchaChoices.innerHTML = '';
+            const letters = captchaText.split('').sort(() => Math.random() - 0.5);
+
+            letters.forEach((letter, index) => {
+                const span = document.createElement('span');
+                span.textContent = letter;
+                span.draggable = true;
+                span.style.border = "1px solid #000";
+                span.style.padding = "10px";
+                span.style.margin = "5px";
+                span.style.cursor = "move";
+                span.style.display = "inline-block";
+
+                span.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text', e.target.textContent);
+                });
+
+                captchaChoices.appendChild(span);
+            });
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            const data = event.dataTransfer.getData('text');
+            document.getElementById('userCaptchaInput').value += data;
+        }
+
+        function allowDrop(event) {
+            event.preventDefault();
+        }
+
         function reloadCaptcha() {
             generateCaptcha();
+            createDraggableCaptcha();
             document.getElementById('userCaptchaInput').value = '';
             document.getElementById('captchaResult').textContent = '';
             attemptsLeft = maxAttempts;
-            startTimer();
         }
+
         function validateCaptcha() {
-            const userInput = document.getElementById('userCaptchaInput').value;
+            if (banned) {
+                document.getElementById('captchaResult').textContent = 'Too many attempts. Try again later.';
+                return;
+            }
+
+            const userCaptcha = document.getElementById('userCaptchaInput').value;
+            const honeypotValue = document.getElementById('honeypotField').value;
             const resultMsg = document.getElementById('captchaResult');
 
+            if (honeypotValue) {
+                resultMsg.textContent = 'Bot detected!';
+                resultMsg.className = 'result-msg error';
+                return;
+            }
+
             if (attemptsLeft > 0) {
-                if (userInput.toLowerCase() === captchaText.toLowerCase()) {
+                if (userCaptcha.toLowerCase() === captchaText.toLowerCase()) {
                     resultMsg.textContent = 'Verification successful!';
                     resultMsg.className = 'result-msg success';
-                    clearInterval(timer);
                 } else {
                     attemptsLeft--;
                     resultMsg.textContent = `Incorrect CAPTCHA. Attempts left: ${attemptsLeft}`;
                     resultMsg.className = 'result-msg error';
                     if (attemptsLeft === 0) {
                         resultMsg.textContent = 'Maximum attempts reached. Please refresh the CAPTCHA.';
+                        banned = true;
+                        setTimeout(() => { banned = false; }, 60000);
                     }
                 }
             } else {
                 resultMsg.textContent = 'No attempts left. Please refresh the CAPTCHA.';
             }
         }
-        function startTimer() {
-            let timeRemaining = timeLimit;
-            const timerText = document.getElementById('timerText');
-            timerText.textContent = `Time left: ${timeRemaining}s`;
 
-            clearInterval(timer);
-            timer = setInterval(() => {
-                timeRemaining--;
-                timerText.textContent = `Time left: ${timeRemaining}s`;
-
-                if (timeRemaining <= 0) {
-                    clearInterval(timer);
-                    timerText.textContent = 'Time is up! Please refresh the CAPTCHA.';
-                    attemptsLeft = 0;
-                }
-            }, 1000);
-        }
-        window.onload = function () {
+        window.onload = function() {
             generateCaptcha();
-            startTimer();
+            createDraggableCaptcha();
+            const dropZone = document.getElementById('dropZone');
+            dropZone.addEventListener('drop', handleDrop);
+            dropZone.addEventListener('dragover', allowDrop);
         };
     </script>
 </body>
-
 </html>
