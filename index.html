@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
         * {
             box-sizing: border-box;
         }
+
         body {
             margin: 0;
             padding: 0;
@@ -18,6 +20,7 @@
             background-color: #f0f0f0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
+
         .captcha-wrapper {
             background-color: #fff;
             padding: 30px;
@@ -26,18 +29,22 @@
             max-width: 500px;
             text-align: center;
         }
+
         canvas {
             margin-bottom: 15px;
             border: 1px solid #ddd;
         }
+
         .refresh-icon {
             margin-left: 10px;
             cursor: pointer;
             color: #007bff;
         }
+
         .refresh-icon:hover {
             color: #0056b3;
         }
+
         .captcha-input {
             width: 100%;
             padding: 10px;
@@ -48,10 +55,13 @@
             outline: none;
             transition: border-color 0.3s;
         }
+
         .captcha-input:focus {
             border-color: #007bff;
         }
-        .submit-btn {
+
+        .submit-btn,
+        .switch-method-btn {
             width: 100%;
             padding: 10px;
             font-size: 18px;
@@ -61,36 +71,57 @@
             border-radius: 4px;
             cursor: pointer;
             transition: background-color 0.3s;
+            margin-top: 10px;
         }
-        .submit-btn:hover {
+
+        .submit-btn:hover,
+        .switch-method-btn:hover {
             background-color: #218838;
         }
+
         .result-msg {
             margin-top: 10px;
             font-size: 16px;
         }
+
         .result-msg.success {
             color: green;
         }
+
         .result-msg.error {
             color: red;
         }
+
         .honeypot {
             display: none;
         }
     </style>
 </head>
+
 <body>
     <div class="captcha-wrapper">
         <h2>Advanced Human Verification</h2>
-        <canvas id="captchaCanvas" width="250" height="80"></canvas>
-        <span class="refresh-icon" onclick="reloadCaptcha()">&#x21bb; Refresh CAPTCHA</span>
-        <p>Drag and drop the correct CAPTCHA text below:</p>
-        <div id="captchaChoices"></div>
-        <div id="dropZone" style="border: 1px solid #ccc; padding: 20px; margin-top: 15px;"></div>
-        <input type="text" id="userCaptchaInput" class="captcha-input" placeholder="Enter CAPTCHA text">
+
+        <div id="textCaptchaSection">
+            <canvas id="captchaCanvas" width="250" height="80"></canvas>
+            <span class="refresh-icon" onclick="reloadCaptcha()">&#x21bb; Refresh CAPTCHA</span>
+            <p>Drag and drop the correct CAPTCHA text below:</p>
+            <div id="captchaChoices"></div>
+            <div id="dropZone" style="border: 1px solid #ccc; padding: 20px; margin-top: 15px;"></div>
+            <input type="text" id="userCaptchaInput" class="captcha-input" placeholder="Enter CAPTCHA text">
+        </div>
+
+        <div id="imageCaptchaSection" style="display: none;">
+            <img id="captchaImage" src="https://via.placeholder.com/150" alt="Image CAPTCHA"
+                style="border: 1px solid #ddd; margin-bottom: 15px;">
+            <p>Select the object shown in the image:</p>
+            <input type="text" id="imageCaptchaInput" class="captcha-input" placeholder="What do you see in the image?">
+        </div>
+
         <input type="text" class="honeypot" id="honeypotField">
         <button class="submit-btn" onclick="validateCaptcha()">Verify</button>
+        <button class="switch-method-btn" onclick="switchCaptchaMethod()">Try a Different CAPTCHA</button>
+
         <p class="result-msg" id="captchaResult"></p>
     </div>
 
@@ -100,6 +131,7 @@
         let attemptsLeft = maxAttempts;
         let banned = false;
         let dynamicCaptchaLength = Math.floor(Math.random() * 3) + 5;
+        let captchaMethod = 'text';
 
         function generateCaptcha() {
             const canvas = document.getElementById('captchaCanvas');
@@ -112,9 +144,9 @@
             }
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
             ctx.fillStyle = '#f3f3f3';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+
             for (let i = 0; i < 100; i++) {
                 ctx.strokeStyle = `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 0.1)`;
                 ctx.beginPath();
@@ -199,6 +231,7 @@
             }
 
             const userCaptcha = document.getElementById('userCaptchaInput').value;
+            const imageCaptcha = document.getElementById('imageCaptchaInput').value;
             const honeypotValue = document.getElementById('honeypotField').value;
             const resultMsg = document.getElementById('captchaResult');
 
@@ -208,26 +241,54 @@
                 return;
             }
 
-            if (attemptsLeft > 0) {
-                if (userCaptcha.toLowerCase() === captchaText.toLowerCase()) {
+            if (captchaMethod === 'text') {
+                if (attemptsLeft > 0) {
+                    if (userCaptcha.toLowerCase() === captchaText.toLowerCase()) {
+                        resultMsg.textContent = 'Verification successful!';
+                        resultMsg.className = 'result-msg success';
+                    } else {
+                        attemptsLeft--;
+                        resultMsg.textContent = `Incorrect CAPTCHA. Attempts left: ${attemptsLeft}`;
+                        resultMsg.className = 'result-msg error';
+                        if (attemptsLeft === 0) {
+                            resultMsg.textContent = 'Maximum attempts reached. Please refresh the CAPTCHA.';
+                            banned = true;
+                            setTimeout(() => { banned = false; }, 60000);
+                        }
+                    }
+                } else {
+                    resultMsg.textContent = 'No attempts left. Please refresh the CAPTCHA.';
+                }
+            } else {
+                if (imageCaptcha.toLowerCase() === 'object') {
                     resultMsg.textContent = 'Verification successful!';
                     resultMsg.className = 'result-msg success';
                 } else {
-                    attemptsLeft--;
-                    resultMsg.textContent = `Incorrect CAPTCHA. Attempts left: ${attemptsLeft}`;
+                    resultMsg.textContent = 'Incorrect image CAPTCHA.';
                     resultMsg.className = 'result-msg error';
-                    if (attemptsLeft === 0) {
-                        resultMsg.textContent = 'Maximum attempts reached. Please refresh the CAPTCHA.';
-                        banned = true;
-                        setTimeout(() => { banned = false; }, 60000);
-                    }
                 }
-            } else {
-                resultMsg.textContent = 'No attempts left. Please refresh the CAPTCHA.';
             }
         }
 
-        window.onload = function() {
+        function switchCaptchaMethod() {
+            const textCaptchaSection = document.getElementById('textCaptchaSection');
+            const imageCaptchaSection = document.getElementById('imageCaptchaSection');
+            const captchaResult = document.getElementById('captchaResult');
+
+            if (captchaMethod === 'text') {
+                captchaMethod = 'image';
+                textCaptchaSection.style.display = 'none';
+                imageCaptchaSection.style.display = 'block';
+                captchaResult.textContent = '';
+            } else {
+                captchaMethod = 'text';
+                textCaptchaSection.style.display = 'block';
+                imageCaptchaSection.style.display = 'none';
+                captchaResult.textContent = '';
+            }
+        }
+
+        window.onload = function () {
             generateCaptcha();
             createDraggableCaptcha();
             const dropZone = document.getElementById('dropZone');
@@ -236,4 +297,5 @@
         };
     </script>
 </body>
+
 </html>
