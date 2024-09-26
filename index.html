@@ -26,7 +26,7 @@
             padding: 30px;
             border-radius: 8px;
             box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
-            max-width: 500px;
+            max-width: 600px;
             text-align: center;
         }
 
@@ -95,6 +95,25 @@
         .honeypot {
             display: none;
         }
+
+        .captcha-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .captcha-grid img {
+            width: 100px;
+            height: 100px;
+            border: 2px solid #ddd;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .captcha-grid img.selected {
+            border-color: #007bff;
+        }
     </style>
 </head>
 
@@ -112,14 +131,14 @@
         </div>
 
         <div id="imageCaptchaSection" style="display: none;">
-            <img id="captchaImage" src="https://via.placeholder.com/150" alt="Image CAPTCHA"
-                style="border: 1px solid #ddd; margin-bottom: 15px;">
-            <p>Select the object shown in the image:</p>
-            <input type="text" id="imageCaptchaInput" class="captcha-input" placeholder="What do you see in the image?">
+            <p id="captchaTask"></p>
+            <div class="captcha-grid" id="captchaGrid"></div>
         </div>
 
         <input type="text" class="honeypot" id="honeypotField">
+
         <button class="submit-btn" onclick="validateCaptcha()">Verify</button>
+
         <button class="switch-method-btn" onclick="switchCaptchaMethod()">Try a Different CAPTCHA</button>
 
         <p class="result-msg" id="captchaResult"></p>
@@ -132,6 +151,18 @@
         let banned = false;
         let dynamicCaptchaLength = Math.floor(Math.random() * 3) + 5;
         let captchaMethod = 'text';
+        let selectedImages = [];
+        let correctImageIndexes = [];
+        let tasks = ['Select all images with cars', 'Select all images with trees', 'Select all images with animals'];
+
+        const images = [
+            { src: 'https://via.placeholder.com/100x100.png?text=Car', label: 'car' },
+            { src: 'https://via.placeholder.com/100x100.png?text=Tree', label: 'tree' },
+            { src: 'https://via.placeholder.com/100x100.png?text=Animal', label: 'animal' },
+            { src: 'https://via.placeholder.com/100x100.png?text=Car2', label: 'car' },
+            { src: 'https://via.placeholder.com/100x100.png?text=Tree2', label: 'tree' },
+            { src: 'https://via.placeholder.com/100x100.png?text=Animal2', label: 'animal' }
+        ];
 
         function generateCaptcha() {
             const canvas = document.getElementById('captchaCanvas');
@@ -224,6 +255,59 @@
             attemptsLeft = maxAttempts;
         }
 
+        function generateImageCaptcha() {
+            const captchaGrid = document.getElementById('captchaGrid');
+            const captchaTask = document.getElementById('captchaTask');
+            captchaGrid.innerHTML = '';
+            selectedImages = [];
+            correctImageIndexes = [];
+
+            const taskIndex = Math.floor(Math.random() * tasks.length);
+            captchaTask.textContent = tasks[taskIndex];
+
+            images.forEach((image, index) => {
+                const img = document.createElement('img');
+                img.src = image.src;
+                img.dataset.label = image.label;
+                img.dataset.index = index;
+
+                img.addEventListener('click', () => {
+                    img.classList.toggle('selected');
+                    const selectedIndex = selectedImages.indexOf(index);
+                    if (selectedIndex === -1) {
+                        selectedImages.push(index);
+                    } else {
+                        selectedImages.splice(selectedIndex, 1);
+                    }
+                });
+
+                if (image.label === tasks[taskIndex].split(' ')[4]) {
+                    correctImageIndexes.push(index);
+                }
+
+                captchaGrid.appendChild(img);
+            });
+        }
+
+        function switchCaptchaMethod() {
+            const textCaptchaSection = document.getElementById('textCaptchaSection');
+            const imageCaptchaSection = document.getElementById('imageCaptchaSection');
+            const captchaResult = document.getElementById('captchaResult');
+
+            if (captchaMethod === 'text') {
+                captchaMethod = 'image';
+                textCaptchaSection.style.display = 'none';
+                imageCaptchaSection.style.display = 'block';
+                captchaResult.textContent = '';
+                generateImageCaptcha();
+            } else {
+                captchaMethod = 'text';
+                textCaptchaSection.style.display = 'block';
+                imageCaptchaSection.style.display = 'none';
+                captchaResult.textContent = '';
+            }
+        }
+
         function validateCaptcha() {
             if (banned) {
                 document.getElementById('captchaResult').textContent = 'Too many attempts. Try again later.';
@@ -231,7 +315,6 @@
             }
 
             const userCaptcha = document.getElementById('userCaptchaInput').value;
-            const imageCaptcha = document.getElementById('imageCaptchaInput').value;
             const honeypotValue = document.getElementById('honeypotField').value;
             const resultMsg = document.getElementById('captchaResult');
 
@@ -260,31 +343,13 @@
                     resultMsg.textContent = 'No attempts left. Please refresh the CAPTCHA.';
                 }
             } else {
-                if (imageCaptcha.toLowerCase() === 'object') {
+                if (selectedImages.sort().toString() === correctImageIndexes.sort().toString()) {
                     resultMsg.textContent = 'Verification successful!';
                     resultMsg.className = 'result-msg success';
                 } else {
                     resultMsg.textContent = 'Incorrect image CAPTCHA.';
                     resultMsg.className = 'result-msg error';
                 }
-            }
-        }
-
-        function switchCaptchaMethod() {
-            const textCaptchaSection = document.getElementById('textCaptchaSection');
-            const imageCaptchaSection = document.getElementById('imageCaptchaSection');
-            const captchaResult = document.getElementById('captchaResult');
-
-            if (captchaMethod === 'text') {
-                captchaMethod = 'image';
-                textCaptchaSection.style.display = 'none';
-                imageCaptchaSection.style.display = 'block';
-                captchaResult.textContent = '';
-            } else {
-                captchaMethod = 'text';
-                textCaptchaSection.style.display = 'block';
-                imageCaptchaSection.style.display = 'none';
-                captchaResult.textContent = '';
             }
         }
 
