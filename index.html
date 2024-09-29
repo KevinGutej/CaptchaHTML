@@ -8,88 +8,127 @@
     <style>
         * {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
-            margin: 0;
-            padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background-color: #f0f0f0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+            font-family: 'Poppins', sans-serif;
+            color: #333;
         }
 
         .captcha-wrapper {
-            background-color: #fff;
+            background: #ffffff;
             padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
-            max-width: 600px;
+            border-radius: 16px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
             text-align: center;
+            max-width: 600px;
+            width: 100%;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .captcha-wrapper:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+        }
+
+        h2 {
+            font-size: 28px;
+            margin-bottom: 20px;
+            color: #333;
         }
 
         canvas {
             margin-bottom: 15px;
             border: 1px solid #ddd;
+            border-radius: 10px;
+            transition: box-shadow 0.3s ease;
+        }
+
+        canvas:hover {
+            box-shadow: 0 0 20px rgba(0, 123, 255, 0.2);
         }
 
         .refresh-icon {
             margin-left: 10px;
             cursor: pointer;
             color: #007bff;
+            font-size: 18px;
+            transition: transform 0.3s ease;
         }
 
         .refresh-icon:hover {
+            transform: rotate(180deg);
             color: #0056b3;
         }
 
         .captcha-input {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             font-size: 18px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
             margin-bottom: 20px;
             outline: none;
-            transition: border-color 0.3s;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
         }
 
         .captcha-input:focus {
             border-color: #007bff;
+            box-shadow: 0 0 10px rgba(0, 123, 255, 0.3);
         }
 
         .submit-btn,
         .switch-method-btn {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             font-size: 18px;
-            background-color: #28a745;
-            color: #fff;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: background-color 0.3s;
-            margin-top: 10px;
+            margin-top: 15px;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .submit-btn:hover,
-        .switch-method-btn:hover {
+        .submit-btn {
+            background-color: #28a745;
+            color: #fff;
+        }
+
+        .submit-btn:hover {
             background-color: #218838;
+            box-shadow: 0 8px 16px rgba(40, 167, 69, 0.3);
+        }
+
+        .switch-method-btn {
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        .switch-method-btn:hover {
+            background-color: #0056b3;
+            box-shadow: 0 8px 16px rgba(0, 123, 255, 0.3);
         }
 
         .result-msg {
-            margin-top: 10px;
+            margin-top: 20px;
             font-size: 16px;
+            font-weight: bold;
+            transition: opacity 0.3s ease;
         }
 
         .result-msg.success {
-            color: green;
+            color: #28a745;
         }
 
         .result-msg.error {
-            color: red;
+            color: #dc3545;
         }
 
         .honeypot {
@@ -97,22 +136,29 @@
         }
 
         .captcha-grid {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
         }
 
         .captcha-grid img {
-            width: 100px;
-            height: 100px;
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
             border: 2px solid #ddd;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
             cursor: pointer;
-            transition: border-color 0.3s;
+        }
+
+        .captcha-grid img:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 123, 255, 0.2);
         }
 
         .captcha-grid img.selected {
             border-color: #007bff;
+            transform: scale(1.05);
         }
     </style>
 </head>
@@ -126,7 +172,8 @@
             <span class="refresh-icon" onclick="reloadCaptcha()">&#x21bb; Refresh CAPTCHA</span>
             <p>Drag and drop the correct CAPTCHA text below:</p>
             <div id="captchaChoices"></div>
-            <div id="dropZone" style="border: 1px solid #ccc; padding: 20px; margin-top: 15px;"></div>
+            <div id="dropZone" style="border: 1px solid #ccc; padding: 20px; margin-top: 15px; border-radius: 8px;">
+            </div>
             <input type="text" id="userCaptchaInput" class="captcha-input" placeholder="Enter CAPTCHA text">
         </div>
 
@@ -138,7 +185,6 @@
         <input type="text" class="honeypot" id="honeypotField">
 
         <button class="submit-btn" onclick="validateCaptcha()">Verify</button>
-
         <button class="switch-method-btn" onclick="switchCaptchaMethod()">Try a Different CAPTCHA</button>
 
         <p class="result-msg" id="captchaResult"></p>
@@ -156,12 +202,12 @@
         let tasks = ['Select all images with cars', 'Select all images with trees', 'Select all images with animals'];
 
         const images = [
-            { src: 'https://via.placeholder.com/100x100.png?text=Car', label: 'car' },
-            { src: 'https://via.placeholder.com/100x100.png?text=Tree', label: 'tree' },
-            { src: 'https://via.placeholder.com/100x100.png?text=Animal', label: 'animal' },
-            { src: 'https://via.placeholder.com/100x100.png?text=Car2', label: 'car' },
-            { src: 'https://via.placeholder.com/100x100.png?text=Tree2', label: 'tree' },
-            { src: 'https://via.placeholder.com/100x100.png?text=Animal2', label: 'animal' }
+            { src: 'https://via.placeholder.com/100?text=Car1', label: 'car' },
+            { src: 'https://via.placeholder.com/100?text=Tree1', label: 'tree' },
+            { src: 'https://via.placeholder.com/100?text=Animal1', label: 'animal' },
+            { src: 'https://via.placeholder.com/100?text=Car2', label: 'car' },
+            { src: 'https://via.placeholder.com/100?text=Tree2', label: 'tree' },
+            { src: 'https://via.placeholder.com/100?text=Animal2', label: 'animal' }
         ];
 
         function generateCaptcha() {
@@ -177,7 +223,6 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#f3f3f3';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-
             for (let i = 0; i < 100; i++) {
                 ctx.strokeStyle = `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 0.1)`;
                 ctx.beginPath();
@@ -201,55 +246,10 @@
                 ctx.fillText(captchaText[i], 0, 0);
                 ctx.restore();
             }
-
-            animateCaptchaText(ctx);
-        }
-
-        function animateCaptchaText(ctx) {
-            let direction = 1;
-            setInterval(() => {
-                direction *= -1;
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                generateCaptcha();
-            }, 300);
-        }
-
-        function createDraggableCaptcha() {
-            const captchaChoices = document.getElementById('captchaChoices');
-            captchaChoices.innerHTML = '';
-            const letters = captchaText.split('').sort(() => Math.random() - 0.5);
-
-            letters.forEach((letter, index) => {
-                const span = document.createElement('span');
-                span.textContent = letter;
-                span.draggable = true;
-                span.style.border = "1px solid #000";
-                span.style.padding = "10px";
-                span.style.margin = "5px";
-                span.style.cursor = "move";
-                span.style.display = "inline-block";
-
-                span.addEventListener('dragstart', (e) => {
-                    e.dataTransfer.setData('text', e.target.textContent);
-                });
-
-                captchaChoices.appendChild(span);
-            });
-        }
-
-        function handleDrop(event) {
-            event.preventDefault();
-            const data = event.dataTransfer.getData('text');
-            document.getElementById('userCaptchaInput').value += data;
-        }
-
-        function allowDrop(event) {
-            event.preventDefault();
         }
 
         function reloadCaptcha() {
             generateCaptcha();
-            createDraggableCaptcha();
             document.getElementById('userCaptchaInput').value = '';
             document.getElementById('captchaResult').textContent = '';
             attemptsLeft = maxAttempts;
@@ -355,7 +355,6 @@
 
         window.onload = function () {
             generateCaptcha();
-            createDraggableCaptcha();
             const dropZone = document.getElementById('dropZone');
             dropZone.addEventListener('drop', handleDrop);
             dropZone.addEventListener('dragover', allowDrop);
